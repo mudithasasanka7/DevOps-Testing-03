@@ -1,35 +1,37 @@
-FROM php:8.1-apache
+# Use official PHP image with extensions
+FROM php:8.2-cli
 
 # Set working directory
-WORKDIR /var/www/html
+WORKDIR /var/www
 
-# Install system dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
     curl \
     libzip-dev \
-    zip \
-    && docker-php-ext-install zip pdo pdo_mysql
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    npm \
+    nodejs \
+    && docker-php-ext-install pdo pdo_mysql zip
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
+# Install Composer (v2.8.1)
+RUN curl -sS https://getcomposer.org/installer | php -- --version=2.8.1 && \
+    mv composer.phar /usr/local/bin/composer
 
-# Install Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# Copy Laravel project files
+COPY . .
 
-# Copy project files
-COPY . /var/www/html
+# Install PHP & JS dependencies
+RUN composer install && npm install && npm run build
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html
+# Run Laravel Artisan commands
+RUN php artisan key:generate && php artisan migrate --force
 
-# Expose port 8080
+# Expose Laravel development server port
 EXPOSE 8080
 
-# Update Apache to listen on port 8080
-RUN sed -i 's/80/8080/g' /etc/apache2/ports.conf /etc/apache2/sites-enabled/000-default.conf
-
-# Start Apache in the foreground
-CMD ["apache2-foreground"]
+# Start Laravel dev server
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
