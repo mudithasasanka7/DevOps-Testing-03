@@ -2,4 +2,4 @@
 FROM alpine
 
 # Define the command to run
-CMD echo "Hello, Sri Lanka, Dompe..!"
+CMD echo "Hello, Sri Lanka, Dompe!"
